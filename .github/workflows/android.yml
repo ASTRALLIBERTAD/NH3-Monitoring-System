@@ -1,10 +1,19 @@
 name: Android Build
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Publish APK to GitHub Releases?'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: write   # needed to create/update releases
 
 jobs:
   build:
@@ -28,8 +37,21 @@ jobs:
           cd app
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
           name: ammonia-monitor-debug
           path: app/app/build/outputs/apk/debug/*.apk
+
+      # Only published when you choose 'true' in the workflow_dispatch input
+      - name: Publish to GitHub Releases
+        if: inputs.release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-latest
+          name: "Android App — Latest"
+          body: |
+            Debug APK for the AmmoniaMonitor Android app.
+            Enable "Install from unknown sources" before installing.
+          prerelease: false
+          files: app/app/build/outputs/apk/debug/*.apk

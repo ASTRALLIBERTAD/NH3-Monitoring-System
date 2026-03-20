@@ -2,13 +2,10 @@ name: Firmware Build (ESP32-C6)
 
 on:
   push:
-    branches: [ main, master ]
-    paths:
-      - 'firmware/**'
   pull_request:
-    branches: [ main, master ]
-    paths:
-      - 'firmware/**'
+
+permissions:
+  contents: write   # needed to create/update releases
 
 jobs:
   build-firmware:
@@ -44,15 +41,30 @@ jobs:
 
       - name: Compile sketch for ESP32-C6
         run: |
+          mkdir -p firmware/build
           arduino-cli compile \
             --fqbn esp32:esp32:esp32c6 \
             --warnings default \
+            --output-dir firmware/build \
             firmware/esp32/main_ble/main_ble.ino
 
-      - name: Upload compiled binary
+      - name: Upload compiled binary as artifact
         uses: actions/upload-artifact@v4
         with:
           name: ammonia-monitor-firmware
-          path: |
-            /tmp/arduino-sketch-*/main_ble.ino.bin
-            /tmp/arduino-sketch-*/main_ble.ino.elf
+          path: firmware/build/
+
+      # Only publish a release on push (not on PRs)
+      - name: Publish to GitHub Releases
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: firmware-latest
+          name: "Firmware (ESP32-C6) — Latest"
+          body: |
+            Auto-built firmware for the AmmoniaMonitor ESP32-C6.
+            Flash `main_ble.ino.bin` using esptool or the Arduino IDE.
+          prerelease: false
+          files: |
+            firmware/build/main_ble.ino.bin
+            firmware/build/main_ble.ino.elf
