@@ -15,6 +15,7 @@
             android:orientation="vertical"
             android:padding="20dp">
 
+            <!-- Connection card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -46,6 +47,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Readings card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -65,14 +67,47 @@
                         android:text="Ammonia Level (NH3)"
                         android:textColor="#34495E" />
 
-                    <TextView
-                        android:id="@+id/tvGas"
+                    <!-- Gas value + SATURATED badge on the same row -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="#2C3E50"
-                        android:textSize="48sp"
-                        android:textStyle="bold" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:id="@+id/tvGas"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="#2C3E50"
+                            android:textSize="48sp"
+                            android:textStyle="bold" />
+
+                        <!-- Inline badge — only visible when ADC is saturated -->
+                        <TextView
+                            android:id="@+id/tvSatBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:background="@drawable/rounded_status_bg"
+                            android:paddingHorizontal="10dp"
+                            android:paddingVertical="4dp"
+                            android:text="SATURATED"
+                            android:textColor="#7B1FA2"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <!-- Saturation detail line — visible when ADC is saturated -->
+                    <TextView
+                        android:id="@+id/tvSatDetail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="ADC is pegged at its ceiling. Check wiring or ventilate."
+                        android:textColor="#7B1FA2"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
 
                     <View
                         android:layout_width="match_parent"
@@ -80,6 +115,7 @@
                         android:layout_marginVertical="12dp"
                         android:background="#ECF0F1" />
 
+                    <!-- Temp / Humidity / R0 baseline — always visible -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -90,8 +126,17 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Temp" />
-                            <TextView android:id="@+id/tvTemp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--°C" android:textSize="18sp" android:textStyle="bold" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Temp" />
+                            <TextView
+                                android:id="@+id/tvTemp"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="--°C"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
                         </LinearLayout>
 
                         <LinearLayout
@@ -99,13 +144,41 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Humidity" />
-                            <TextView android:id="@+id/tvHum" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--%" android:textSize="18sp" android:textStyle="bold" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Humidity" />
+                            <TextView
+                                android:id="@+id/tvHum"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="--%"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="R0 Baseline" />
+                            <TextView
+                                android:id="@+id/tvR0"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="--"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Alert banner -->
             <TextView
                 android:id="@+id/tvAlert"
                 android:layout_width="match_parent"
@@ -117,6 +190,7 @@
                 android:textColor="@color/white"
                 android:textStyle="bold" />
 
+            <!-- Settings + calibration card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -129,6 +203,7 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
+                    <!-- Phone number -->
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
@@ -148,8 +223,9 @@
                         android:layout_marginTop="8dp"
                         android:text="Update Phone Number" />
 
-                    <View android:layout_width="match_parent" android:layout_height="12dp"/>
+                    <View android:layout_width="match_parent" android:layout_height="12dp" />
 
+                    <!-- Threshold (unchanged) -->
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
@@ -169,13 +245,85 @@
                         android:layout_height="wrap_content"
                         android:text="Apply New Threshold" />
 
+                    <View android:layout_width="match_parent" android:layout_height="12dp" />
+
+                    <!-- Calibration section -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Place sensor in clean air before calibrating. Refused automatically if an alert is active."
+                        android:textColor="#7F8C8D"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- Cal status feedback — hidden until an action is taken -->
+                    <TextView
+                        android:id="@+id/tvCalStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="6dp"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
                     <Button
                         android:id="@+id/btnCalibrate"
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:text="Auto-Calibrate (Clean Air)" />
+
+                    <View android:layout_width="match_parent" android:layout_height="12dp" />
+
+                    <!-- R0 fine-tune step -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Fine-Tune Step (default 50)">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etCalStep"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:text="50" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- R0 +/- buttons -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Calibrate MQ Sensor" />
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btnR0Minus"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="6dp"
+                            android:text="R0  −  Lower" />
+
+                        <Button
+                            android:id="@+id/btnR0Plus"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="6dp"
+                            android:text="R0  +  Raise" />
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Raise R0 if sensor reads high in clean air. Lower R0 if it reads too low."
+                        android:textColor="#95A5A6"
+                        android:textSize="11sp" />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
