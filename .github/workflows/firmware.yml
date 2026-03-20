@@ -15,10 +15,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install arduino-cli
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
-          echo "$HOME/bin" >> $GITHUB_PATH
+      # Official action — handles install + PATH correctly across all steps
+      - name: Setup arduino-cli
+        uses: arduino/setup-arduino-cli@v2
 
       - name: Configure arduino-cli
         run: |
