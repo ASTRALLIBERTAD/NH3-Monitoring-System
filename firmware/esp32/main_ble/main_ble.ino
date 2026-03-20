@@ -14,24 +14,23 @@
 #define DHTPIN  4
 #define MQ_PIN  0
 #define DHTTYPE DHT22
+#define SIM900_TX 19
+#define SIM900_RX 18
 
-#define SIM900_TX 2
-#define SIM900_RX 3
 HardwareSerial sim900(1);
-
 DHT dht(DHTPIN, DHTTYPE);
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 Preferences prefs;
 
-#define SERVICE_UUID          "12345678-1234-1234-1234-123456789abc"
-#define CHAR_GAS_UUID         "12345678-1234-1234-1234-123456789ab1"
-#define CHAR_TEMP_UUID        "12345678-1234-1234-1234-123456789ab2"
-#define CHAR_HUM_UUID         "12345678-1234-1234-1234-123456789ab3"
-#define CHAR_ALERT_UUID       "12345678-1234-1234-1234-123456789ab4"
-#define CHAR_THRESHOLD_UUID   "12345678-1234-1234-1234-123456789ab5"
-#define CHAR_CALIBRATE_UUID   "12345678-1234-1234-1234-123456789ab6"
-#define CHAR_R0_UUID          "12345678-1234-1234-1234-123456789ab7"
-#define CHAR_PHONE_UUID       "12345678-1234-1234-1234-123456789ab8"
+#define SERVICE_UUID           "12345678-1234-1234-1234-123456789abc"
+#define CHAR_GAS_UUID          "12345678-1234-1234-1234-123456789ab1"
+#define CHAR_TEMP_UUID         "12345678-1234-1234-1234-123456789ab2"
+#define CHAR_HUM_UUID          "12345678-1234-1234-1234-123456789ab3"
+#define CHAR_ALERT_UUID        "12345678-1234-1234-1234-123456789ab4"
+#define CHAR_THRESHOLD_UUID    "12345678-1234-1234-1234-123456789ab5"
+#define CHAR_CALIBRATE_UUID    "12345678-1234-1234-1234-123456789ab6"
+#define CHAR_R0_UUID           "12345678-1234-1234-1234-123456789ab7"
+#define CHAR_PHONE_UUID        "12345678-1234-1234-1234-123456789ab8"
 
 float R0 = 10.0f;
 int mqThreshold = 2500;
@@ -40,38 +39,68 @@ int gasValue = 0;
 bool alertActive = false;
 bool deviceConnected = false;
 bool doCalibration = false;
-bool smsSent = false;
 String targetNumber = "";
+unsigned long  lastSmsTime = 0;
+const unsigned long smsInterval = 30000;
 
 BLECharacteristic *pCharGas, *pCharTemp, *pCharHum, *pCharAlert, *pCharR0;
 
 void sendSMS(String message) {
   if (targetNumber.length() < 5) return;
+  Serial.println("--- SMS ATTEMPT ---");
   esp_task_wdt_reset();
-  sim900.println("AT");
-  delay(200);
-  sim900.println("AT+CMGF=1");
-  delay(200);
+  
+  sim900.println("AT"); 
+  delay(1000);
+  sim900.println("AT+CMGF=1"); 
+  delay(1000);
+
   sim900.print("AT+CMGS=\"");
   sim900.print(targetNumber);
   sim900.println("\"");
-  delay(200);
+  
+  delay(2000); 
+  
   sim900.print(message);
-  delay(100);
-  sim900.write(26);
-  for(int i=0; i<6; i++) { esp_task_wdt_reset(); delay(500); }
+  delay(1000);
+  sim900.write(26); 
+  
+  for(int i=0; i<20; i++) { 
+    esp_task_wdt_reset(); 
+    delay(500); 
+    while(sim900.available()) Serial.write(sim900.read());
+  }
+  Serial.println("\n--- ATTEMPT END ---");
 }
+
+// void callSMS() {
+//   if (targetNumber.length() < 5) return;
+//   Serial.println("--- CALL ATTEMPT ---");
+
+//   sim900.print("ATD"); 
+//   sim900.print(targetNumber);
+//   sim900.println(";");
+
+//   for(int i=0; i<40; i++) { 
+//     esp_task_wdt_reset(); 
+//     delay(500); 
+//   }
+  
+//   sim900.println("ATH"); 
+//   delay(100);
+  
+//   for(int i=0; i<20; i++) { 
+//     esp_task_wdt_reset(); 
+//     delay(500); 
+//     while(sim900.available()) Serial.write(sim900.read());
+//   }
+
+//   Serial.println("\n--- ATTEMPT END ---");
+// }
 
 class ServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer* pS) { deviceConnected = true; }
   void onDisconnect(BLEServer* pS) { deviceConnected = false; BLEDevice::startAdvertising(); }
-};
-
-class ThresholdCallbacks : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic* pC) {
-    int val = pC->getValue().c_str() ? atoi(pC->getValue().c_str()) : 0;
-    if (val > 0) mqThreshold = val;
-  }
 };
 
 class PhoneCallbacks : public BLECharacteristicCallbacks {
@@ -86,7 +115,7 @@ class ThresholdCallbacks : public BLECharacteristicCallbacks {
     int val = pC->getValue().c_str() ? atoi(pC->getValue().c_str()) : 0;
     if (val > 0) {
       mqThreshold = val;
-      prefs.putInt("threshold", mqThreshold); // ← add this line
+      prefs.putInt("threshold", mqThreshold);
     }
   }
 };
@@ -102,8 +131,12 @@ void setup() {
   targetNumber = prefs.getString("phone", "");
   mqThreshold  = prefs.getInt("threshold", 2500);
   
-  esp_task_wdt_config_t wdt_config = { .timeout_ms = 15000, .idle_core_mask = 0, .trigger_panic = true };
-  if (esp_task_wdt_init(&wdt_config) != ESP_OK) {}
+  esp_task_wdt_config_t wdt_config = { 
+    .timeout_ms = 15000, 
+    .idle_core_mask = 0, 
+    .trigger_panic = true 
+  };
+  esp_task_wdt_reconfigure(&wdt_config);
   esp_task_wdt_add(NULL);
 
   Wire.begin(I2C_SDA, I2C_SCL);
@@ -143,17 +176,26 @@ void loop() {
   gasValue = analogRead(MQ_PIN);
   temp = dht.readTemperature();
   hum = dht.readHumidity();
-  if (isnan(temp)) temp = 0; if (isnan(hum)) hum = 0;
+  
+  if (isnan(temp)) temp = 0; 
+  if (isnan(hum)) hum = 0;
+  
   alertActive = (gasValue > mqThreshold);
 
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_6x12_tr);
   u8g2.drawStr(2, 10, deviceConnected ? "APP CONNECTED" : "WAITING BLE...");
   u8g2.drawHLine(0, 13, 128);
-  u8g2.setCursor(2, 30); u8g2.print("NH3: "); u8g2.print(gasValue);
-  u8g2.setCursor(2, 45); u8g2.print("T: "); u8g2.print(temp,1); u8g2.print("C H: "); u8g2.print(hum,1); u8g2.print("%");
-  u8g2.setCursor(2, 60); u8g2.print("NUM: "); u8g2.print(targetNumber != "" ? targetNumber : "NONE");
-  if(alertActive) { u8g2.drawBox(90, 20, 30, 40); }
+  
+  if (alertActive) {
+    u8g2.drawStr(2, 30, "ALERT: HIGH NH3!");
+    u8g2.setCursor(2, 42); u8g2.print("VALUE: "); u8g2.print(gasValue);
+  } else {
+    u8g2.setCursor(2, 30); u8g2.print("NH3: "); u8g2.print(gasValue);
+  }
+  
+  u8g2.setCursor(2, 52); u8g2.print("T: "); u8g2.print(temp,1); u8g2.print("C H: "); u8g2.print(hum,1); u8g2.print("%");
+  u8g2.setCursor(2, 62); u8g2.print("NUM: "); u8g2.print(targetNumber != "" ? targetNumber : "NONE");
   u8g2.sendBuffer();
 
   if (deviceConnected) {
@@ -163,11 +205,17 @@ void loop() {
     pCharAlert->setValue(alertActive ? "1" : "0"); pCharAlert->notify();
   }
 
-  if (alertActive && !smsSent) {
-    sendSMS("CRITICAL: High Ammonia! Level: " + String(gasValue));
-    smsSent = true;
+  if (alertActive) {
+    if (millis() - lastSmsTime >= smsInterval) {
+      sendSMS("CRITICAL: High Ammonia! Level: " + String(gasValue));
+      
+      // callSMS();
+      
+      lastSmsTime = millis();
+    }
   } else if (!alertActive && gasValue < (mqThreshold - 300)) {
-    smsSent = false;
+    lastSmsTime = 0;
   }
+  
   delay(1000);
 }
