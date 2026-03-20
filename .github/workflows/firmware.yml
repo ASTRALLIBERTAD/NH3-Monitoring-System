@@ -1,0 +1,58 @@
+name: Firmware Build (ESP32-C6)
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'firmware/**'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'firmware/**'
+
+jobs:
+  build-firmware:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install arduino-cli
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Configure arduino-cli
+        run: |
+          arduino-cli config init
+          # ESP32 Arduino core (Espressif) — supports ESP32-C6 from 3.x onward
+          arduino-cli config add board_manager.additional_urls \
+            https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+
+      - name: Update index & install ESP32 core
+        run: |
+          arduino-cli core update-index
+          # 3.x is required for ESP32-C6 (RISC-V) support
+          arduino-cli core install esp32:esp32@3.0.7
+
+      - name: Install required libraries
+        run: |
+          arduino-cli lib install "U8g2"
+          arduino-cli lib install "DHT sensor library"
+          arduino-cli lib install "Adafruit Unified Sensor"
+
+      - name: Compile sketch for ESP32-C6
+        run: |
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32c6 \
+            --warnings default \
+            firmware/esp32/main_ble/main_ble.ino
+
+      - name: Upload compiled binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ammonia-monitor-firmware
+          path: |
+            /tmp/arduino-sketch-*/main_ble.ino.bin
+            /tmp/arduino-sketch-*/main_ble.ino.elf
